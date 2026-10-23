@@ -1,4 +1,4 @@
-# E-Slate Claqueta Digital (Film Clapperboard) 🎬📟
+# E-Slate Claqueta Digital (Film Clapperboard) 🎬📟 `v2.0.0`
 
 Esto lo he creado 100% con IA basado en las contribuciones de By
 gokux en https://www.instructables.com/E-Slate-DIY-Wi-Fi-E-Ink-Digital-Film-Clapperboard/

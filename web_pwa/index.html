@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>E-Slate Cinema Controller</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="E-Slate">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Digital Film Clapperboard Controller via Bluetooth Low Energy">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Insecure Context / Compatibility Warning Banner -->
+  <div id="compat-banner" class="alert-banner hidden">
+    <span id="compat-msg">⚠️ Web Bluetooth requiere conexión segura HTTPS o Chrome para Android.</span>
+    <button class="icon-btn" id="btn-close-compat" style="width:24px;height:24px;font-size:12px;">✕</button>
+  </div>
+
+  <!-- Header Status Bar -->
+  <header class="header-bar">
+    <button class="status-pill" id="btn-connect" title="Conectar / Desconectar E-Slate">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">🔴 Desconectado</span>
+      <span id="auth-shield" class="hidden" style="color:#10b981;font-size:12px;">🛡️</span>
+    </button>
+
+    <div class="header-right">
+      <div class="battery-badge hidden" id="battery-badge">
+        <span id="battery-icon">🔋</span>
+        <span id="battery-text">--%</span>
+      </div>
+      <button class="icon-btn" id="btn-open-settings" title="Ajustes y Seguridad PIN">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Main Clapperboard Container -->
+  <main class="main-content">
+    
+    <!-- Traditional Clapper Sticks Header Graphic -->
+    <div class="slate-sticks"></div>
+
+    <!-- TIMECODE MODULAR HERO CARD -->
+    <div class="row row-one-col" id="card-timecode">
+      <div class="slate-card timecode-card">
+        <div class="card-header-row">
+          <div class="card-label-group">
+            <label class="card-label" for="input-timecode">TIMECODE</label>
+            <span class="tc-fps-badge" id="badge-tc-fps" title="Cambiar Frame Rate">24 FPS</span>
+            <span class="tc-running-dot active" id="dot-tc-running" title="1 Hz Ticker Activo"></span>
+          </div>
+          <div class="tc-toggle-wrap">
+            <label class="switch-label" title="Activar / Desactivar Timecode">
+              <input type="checkbox" id="toggle-timecode-active" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Active Timecode Controls Body -->
+        <div class="tc-body" id="tc-body">
+          <div class="tc-readout-row">
+            <button type="button" class="tc-step-btn" id="btn-tc-minus-1s" title="-1 Segundo">-1s</button>
+            <input type="text" id="input-timecode" class="slate-input input-timecode" value="00:00:00" maxlength="8" autocomplete="off" spellcheck="false" placeholder="00:00:00">
+            <button type="button" class="tc-step-btn" id="btn-tc-plus-1s" title="+1 Segundo">+1s</button>
+          </div>
+
+          <div class="tc-actions-row">
+            <button type="button" class="btn-jam-tod" id="btn-jam-tod" title="Sincronizar reloj atómico del smartphone con la claqueta">
+              <span>⚡ TOD JAM-SYNC</span>
+            </button>
+            <button type="button" class="btn-tc-playpause" id="btn-tc-playpause" title="Pausar / Reanudar 1 Hz Ticker">
+              <span id="tc-playpause-icon">⏸</span>
+            </button>
+          </div>
+
+          <div class="tc-config-grid">
+            <div class="tc-config-item">
+              <span class="tc-config-label">POSICIÓN:</span>
+              <div class="segmented-control" id="seg-tc-slot">
+                <button type="button" class="seg-btn active" data-slot="0">TOP</button>
+                <button type="button" class="seg-btn" data-slot="1">BARRA</button>
+                <button type="button" class="seg-btn" data-slot="2">HERO</button>
+              </div>
+            </div>
+            <div class="tc-config-item">
+              <span class="tc-config-label">TAMAÑO:</span>
+              <div class="segmented-control" id="seg-tc-size">
+                <button type="button" class="seg-btn" data-size="0">MED</button>
+                <button type="button" class="seg-btn active" data-size="1">GRANDE</button>
+                <button type="button" class="seg-btn" data-size="2">XL</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsed Muted State (When Timecode is toggled OFF) -->
+        <div class="tc-disabled-state hidden" id="tc-disabled-state">
+          <span class="tc-disabled-text">TIMECODE DESACTIVADO — LAYOUT EXPANDIDO</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 1: THE TRINITY (ROLL / SCENE / TAKE) -->
+    <div class="row row-trinity">
+      <div class="slate-card" id="card-roll">
+        <label class="card-label" for="input-roll">ROLL</label>
+        <input type="text" id="input-roll" class="slate-input input-huge" value="A001" maxlength="10" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="slate-card" id="card-scene">
+        <label class="card-label" for="input-scene">SCENE</label>
+        <input type="text" id="input-scene" class="slate-input input-huge" value="35A" maxlength="10" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="slate-card" id="card-take">
+        <label class="card-label" for="input-take">TAKE</label>
+        <input type="text" id="input-take" class="slate-input input-huge input-gold" value="1" maxlength="10" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <!-- ROW 2: PRODUCTION TITLE (PROD) WITH 🌸 SHORTCUT -->
+    <div class="row row-one-col">
+      <div class="slate-card" id="card-prod">
+        <label class="card-label" for="input-prod">PRODUCTION</label>
+        <div class="input-with-button">
+          <input type="text" id="input-prod" class="slate-input input-large" value="NEBRALTA 🌸" maxlength="40" autocomplete="off" spellcheck="false">
+          <button type="button" class="card-btn btn-sakura" id="btn-sakura" title="Insertar flor de cerezo">🌸</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: DIRECTORIAL CREDITS (DIR / DOP) -->
+    <div class="row row-two-col">
+      <div class="slate-card" id="card-dir">
+        <label class="card-label" for="input-dir">DIRECTOR</label>
+        <input type="text" id="input-dir" class="slate-input input-med" value="DIRECTOR" maxlength="35" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="slate-card" id="card-dop">
+        <label class="card-label" for="input-dop">D.O.P.</label>
+        <input type="text" id="input-dop" class="slate-input input-med" value="FELIPELOTAS1" maxlength="35" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <!-- ROW 4: NOTE & DATE (WITH 📱 HOY AUTO-SYNC) -->
+    <div class="row row-two-col">
+      <div class="slate-card" id="card-note">
+        <label class="card-label" for="input-note">NOTE</label>
+        <input type="text" id="input-note" class="slate-input input-med" value="ISO 120" maxlength="35" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="slate-card" id="card-date">
+        <label class="card-label" for="input-date">DATE</label>
+        <div class="input-with-button">
+          <input type="text" id="input-date" class="slate-input input-med" value="25.09.2026" maxlength="15" autocomplete="off" spellcheck="false">
+          <button type="button" class="card-btn btn-hoy" id="btn-hoy" title="Sincronizar fecha actual del smartphone">📱 HOY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 5: CAMERA & SOUND BADGES -->
+    <div class="row row-two-col">
+      <div class="slate-card" id="card-cam">
+        <label class="card-label">CAM</label>
+        <div class="badge-group">
+          <button type="button" class="badge-btn active-gold" id="btn-cam-a" data-cam="A">A</button>
+          <button type="button" class="badge-btn" id="btn-cam-b" data-cam="B">B</button>
+          <button type="button" class="badge-btn" id="btn-cam-c" data-cam="C">C</button>
+        </div>
+      </div>
+      <div class="slate-card" id="card-sound">
+        <label class="card-label">SOUND</label>
+        <div class="badge-group">
+          <button type="button" class="badge-btn active" id="btn-sound-sync" data-sound="SYNC">SYNC</button>
+          <button type="button" class="badge-btn" id="btn-sound-mos" data-sound="MOS">MOS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 6: LOCATION & LIGHTING BADGES -->
+    <div class="row row-two-col">
+      <div class="slate-card" id="card-loc">
+        <label class="card-label">LOC</label>
+        <div class="badge-group">
+          <button type="button" class="badge-btn active" id="btn-loc-int" data-loc="INT">INT</button>
+          <button type="button" class="badge-btn" id="btn-loc-ext" data-loc="EXT">EXT</button>
+        </div>
+      </div>
+      <div class="slate-card" id="card-light">
+        <label class="card-label">LIGHT</label>
+        <div class="badge-group">
+          <button type="button" class="badge-btn active" id="btn-light-day" data-light="DAY">DAY</button>
+          <button type="button" class="badge-btn" id="btn-light-night" data-light="NIGHT">NIGHT</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Sticky Bottom Action Bar -->
+  <footer class="bottom-bar">
+    <div class="quick-actions-row">
+      <button type="button" class="btn-quick-take" id="btn-quick-take">
+        <span>➕ TAKE (+1)</span>
+      </button>
+      <button type="button" class="btn-quick-roll" id="btn-quick-roll">
+        <span>➕ ROLL (+1)</span>
+      </button>
+    </div>
+    <button type="button" class="btn-full-update" id="btn-full-update">
+      <span id="update-spinner" class="spinner hidden"></span>
+      <span id="update-icon">⚡</span>
+      <span id="update-label">ACTUALIZAR CLAQUETA</span>
+    </button>
+  </footer>
+
+  <!-- Settings & PIN Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 class="modal-title">AJUSTES & SEGURIDAD</h2>
+        <button class="icon-btn" id="btn-close-settings" style="width:28px;height:28px;font-size:14px;">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        
+        <!-- Bluetooth Section -->
+        <div class="modal-section">
+          <div class="modal-section-title">CONEXIÓN BLUETOOTH</div>
+          <div class="setting-row">
+            <span class="setting-label">Estado</span>
+            <span class="setting-label" id="modal-conn-status" style="font-family:var(--font-mono);font-weight:700;">Desconectado</span>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Acción</span>
+            <button class="btn-secondary" id="modal-btn-connect">Buscar Claqueta</button>
+          </div>
+        </div>
+
+        <!-- PIN Security Section -->
+        <div class="modal-section">
+          <div class="modal-section-title">SEGURIDAD PIN (HMAC-SHA256)</div>
+          <div class="setting-row">
+            <span class="setting-label">PIN Secreto</span>
+            <input type="text" id="input-pin" class="setting-input" value="123456789P" autocomplete="off" spellcheck="false">
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.4;">
+            Clave compartida con la claqueta para autenticación criptográfica. Predeterminada: 123456789P.
+          </p>
+        </div>
+
+        <!-- Layout & Mode Section -->
+        <div class="modal-section">
+          <div class="modal-section-title">DISEÑO Y PANTALLA E-PAPER</div>
+          <div class="setting-row">
+            <span class="setting-label">Diseño</span>
+            <select id="select-layout" class="setting-select">
+              <option value="0">Cinema Pro</option>
+              <option value="1">Big Slate (Escena Gigante)</option>
+              <option value="2">Commercial</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Modo Invertido (Fondo Negro)</span>
+            <div class="setting-toggle" id="toggle-invert">
+              <div class="setting-toggle-thumb"></div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Pantalla Física</span>
+            <button class="btn-secondary" id="btn-force-refresh">🔄 Forzar Refresco</button>
+          </div>
+        </div>
+
+        <!-- Timecode & Camera Sync Section -->
+        <div class="modal-section" id="modal-sec-timecode">
+          <div class="modal-section-title">SINCRONIZACIÓN DE CÁMARA (TIMECODE)</div>
+          <div class="setting-row">
+            <span class="setting-label">Frame Rate (FPS)</span>
+            <select id="select-tc-fps" class="setting-select">
+              <option value="23.976">23.976 FPS (Cinema NTSC)</option>
+              <option value="24" selected>24.000 FPS (Standard Cinema)</option>
+              <option value="25">25.000 FPS (PAL / Broadcast EU)</option>
+              <option value="29.97">29.970 DF (US Broadcast)</option>
+              <option value="30">30.000 FPS (Web / HFR)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Slot de Posición</span>
+            <select id="select-tc-slot" class="setting-select">
+              <option value="0" selected>0: Top Header (Arriba)</option>
+              <option value="1">1: Lower Bar (Barra Inferior)</option>
+              <option value="2">2: Center Hero (Centro Gigante)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Escala Tipográfica</span>
+            <select id="select-tc-size" class="setting-select">
+              <option value="0">Medium (TextSize 3 / 24px)</option>
+              <option value="1" selected>Large (TextSize 5 / 40px)</option>
+              <option value="2">Giant XL (TextSize 8 / 64px)</option>
+            </select>
+          </div>
+          <div class="tc-offset-box">
+            <div class="tc-offset-title">CAMERA JAM / AJUSTE DE CUADROS (OFFSET)</div>
+            <div class="setting-row">
+              <span class="setting-label">Offset Delta (Frames)</span>
+              <div class="offset-input-wrap">
+                <button type="button" class="btn-offset-step" id="btn-offset-minus">-1F</button>
+                <input type="number" id="input-tc-offset" class="setting-input offset-num" value="0" step="1">
+                <button type="button" class="btn-offset-step" id="btn-offset-plus">+1F</button>
+              </div>
+            </div>
+            <div class="setting-row" style="margin-top:8px;">
+              <button type="button" class="btn-secondary" id="btn-apply-camera-jam" style="width:100%;">
+                📹 Aplicar Jam de Cámara a Claqueta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Granular Field Visibility -->
+        <div class="modal-section">
+          <div class="modal-section-title">VISIBILIDAD DE CAMPOS</div>
+          <div class="visibility-grid">
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-roll" checked> ROLL</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-scene" checked> SCENE</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-take" checked> TAKE</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-prod" checked> PROD</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-dir" checked> DIRECTOR</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-dop" checked> D.O.P.</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-timecode" checked> TIMECODE</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-cam" checked> CAM</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-sound" checked> SOUND</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-loc" checked> LOC</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-light" checked> LIGHT</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-date" checked> DATE</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-note" checked> NOTE</label>
+            <label class="visibility-checkbox"><input type="checkbox" id="vis-bat" checked> BATERÍA</label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" id="btn-save-settings">Guardar y Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Bubble -->
+  <div class="toast" id="toast">Notificación</div>
+
+  <script src="app.js"></script>
+</body>
+</html>

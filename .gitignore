@@ -7,6 +7,16 @@
 ehthumbs.db
 Thumbs.db
 
+# Python
+__pycache__/
+*.py[cod]
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+.derivedData/
+
 # PlatformIO
 .pio/
 .pioenvs/
@@ -22,3 +32,12 @@ Thumbs.db
 !.vscode/extensions.json
 *.swp
 *.local
+.cache/*
+
+# Agentes e instrucciones internas de IA
+.agents/
+ORIGINAL_REQUEST.md
+PROJECT.md
+TEST_INFRA.md
+TEST_READY.md
+GEMINI.md
